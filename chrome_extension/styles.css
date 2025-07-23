@@ -1,0 +1,24 @@
+body {
+  font-family: Arial;
+  padding: 10px;
+  width: 300px;
+}
+
+input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+}
+
+button {
+  padding: 8px 12px;
+  width: 100%;
+}
+
+#answer {
+  margin-top: 10px;
+  font-size: 14px;
+  background: #f0f0f0;
+  padding: 8px;
+  border-radius: 4px;
+}
