@@ -1,83 +1,95 @@
-🚀 YouTube RAG Chatbot Chrome Extension
-A powerful Chrome extension that enables users to interact with YouTube videos using a context-aware Q&A chatbot — powered by Retrieval-Augmented Generation (RAG) and Gemini Pro (Google Generative AI).
+# 🧠 YouTube RAG Chatbot Chrome Extension
+
+A Chrome Extension that allows users to ask questions about any YouTube video and get AI-powered answers — using **Retrieval-Augmented Generation (RAG)**, **YouTube transcripts**, **HuggingFace embeddings**, **FAISS**, and **Gemini Pro (Google Generative AI)** via a **FastAPI backend**.
+
+---
+
+## 📌 Features
+
+- ✅ Chrome extension to interact with any YouTube video
+- 🎙️ Fetches video transcript via **YouTube Transcript API**
+- ✂️ Splits and embeds content using **HuggingFace Transformers**
+- 💾 Stores vector data using **FAISS**
+- 🧠 Sends context-aware queries to **Gemini Pro**
+- ⚡ Uses a **FastAPI** backend for serving responses
+- 📥 Provides real-time answers in the extension popup
+
+---
+
+## 🛠 Tech Stack
+
+| Component         | Tool/Library                            |
+|------------------|------------------------------------------|
+| Language Model    | Gemini Pro via `langchain_google_genai` |
+| Embeddings        | `sentence-transformers/all-MiniLM-L6-v2`|
+| Vector DB         | FAISS (`langchain_community.vectorstores`) |
+| Transcripts       | `youtube_transcript_api`                |
+| Backend           | FastAPI                                 |
+| Frontend          | HTML, JS, CSS (Chrome Extension)        |
+
+---
+
+## 📁 Project Structure
 
 
-🧠 What It Does
-✅ Works as a Chrome Extension
-✅ Extracts transcripts from any YouTube video
-✅ Splits and embeds the content using HuggingFace Transformers
-✅ Stores embeddings using FAISS vector store
-✅ Answers questions using Gemini Pro
-✅ FastAPI backend for handling RAG responses in real time
+---
 
-📦 Tech Stack
-Frontend: HTML/CSS/JS (Chrome Extension)
+## 🚀 Getting Started
 
-Backend: FastAPI
+### 🔧 1. Backend Setup (FastAPI + LangChain + Gemini)
 
-LLM: Gemini Pro (Google Generative AI)
+```bash
+# Clone the repo
+git clone https://github.com/your-username/youtube-rag-chatbot.git
+cd youtube-rag-chatbot/backend
 
-Embeddings: Hugging Face Transformers
-
-Vector Store: FAISS
-
-Transcripts: YouTube Transcript API
-
-🛠️ How It Works
-Injects content script to access the current YouTube video URL.
-
-Extracts the video transcript using the YouTube Transcript API.
-
-Splits and embeds the transcript into vector representations.
-
-Stores these embeddings in a FAISS vector store.
-
-Sends the user’s question to the backend (FastAPI).
-
-Performs similarity search, constructs context, and queries Gemini Pro.
-
-Displays real-time answers in a floating chat window on the video.
-
-📁 Project Structure
-css
-Copy
-Edit
-📦youtube-rag-chatbot
- ┣ 📂backend
- ┃ ┣ 📜main.py
- ┃ ┣ 📜utils.py
- ┃ ┣ 📜requirements.txt
- ┣ 📂extension
- ┃ ┣ 📜manifest.json
- ┃ ┣ 📜popup.html
- ┃ ┣ 📜popup.js
- ┃ ┣ 📜content.js
- ┣ 📜README.md
-
-🚀 Getting Started
-Backend Setup
-bash
-Copy
-Edit
-cd backend
+# Setup Python 3.10 virtual environment
 python3.10 -m venv venv
 source venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
+GOOGLE_API_KEY=your_google_gemini_api_key
 uvicorn main:app --reload
-Chrome Extension Setup
-Open Chrome and go to chrome://extensions/
+
+🌐 2. Chrome Extension Setup
+Go to chrome://extensions/ in Chrome
 
 Enable Developer Mode
 
-Click Load Unpacked and select the extension/ folder
+Click Load Unpacked
 
-Open a YouTube video and interact with the bot
+Select the /extension folder from the project directory
 
-🙌 Acknowledgements
+Open a YouTube video and launch the extension
+
+💡 How It Works
+Extract video ID from YouTube URL
+
+Use youtube_transcript_api to fetch the transcript
+
+Split the transcript into chunks using RecursiveCharacterTextSplitter
+
+Embed each chunk with HuggingFaceEmbeddings
+
+Store in FAISS vector index
+
+On user question → retrieve top relevant chunks
+
+Format context → query Gemini with langchain_google_genai
+
+Return answer → display in popup
+
+🤝 Credits
 LangChain
 
-HuggingFace Transformers
+HuggingFace
 
 Gemini Pro
 
-FAISS
+FAISS by Facebook
+
+YouTube Transcript API
+
+📄 License
+This project is licensed under the MIT License.
