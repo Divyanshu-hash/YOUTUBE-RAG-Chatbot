@@ -46,3 +46,45 @@ source venv/bin/activate
 pip install -r requirements.txt
 GOOGLE_API_KEY=your_google_gemini_api_key
 uvicorn main:app --reload
+```
+### 🌐 2. Chrome Extension Setup
+Go to chrome://extensions/ in Chrome
+
+Enable Developer Mode
+
+Click Load Unpacked
+
+Select the /extension folder from the project directory
+
+Open a YouTube video and launch the extension
+
+### 💡 How It Works
+Extract video ID from YouTube URL
+
+Use youtube_transcript_api to fetch the transcript
+
+Split the transcript into chunks using RecursiveCharacterTextSplitter
+
+Embed each chunk with HuggingFaceEmbeddings
+
+Store in FAISS vector index
+
+On user question → retrieve top relevant chunks
+
+Format context → query Gemini with langchain_google_genai
+
+Return answer → display in popup
+
+### 🤝 Credits
+LangChain
+
+HuggingFace
+
+Gemini Pro
+
+FAISS by Facebook
+
+YouTube Transcript API
+
+### 📄 License
+This project is licensed under the MIT License.
