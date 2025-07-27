@@ -1,14 +1,20 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>RAG Chatbot</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <title>YouTube RAG Chatbot</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <h3>YouTube RAG Chatbot</h3>
-  <input type="text" id="question" placeholder="Ask a question...">
-  <button id="askBtn">Ask</button>
-  <div id="answer"></div>
+  <div class="container">
+    <h3>🎥 YouTube RAG Chatbot</h3>
+    
+    <input type="text" id="question" placeholder="Ask a question..." />
+    <button id="askBtn">Ask</button>
+
+    <div id="answer"></div>
+    <div id="status" class="status"></div>
+  </div>
   <script src="popup.js"></script>
 </body>
 </html>
