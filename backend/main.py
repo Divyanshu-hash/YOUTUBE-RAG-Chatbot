@@ -1,24 +1,26 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, VideoUnavailable
-from sentence_transformers import SentenceTransformer
-import faiss
-import numpy as np
-import google.generativeai as genai
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_core.documents import Document
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_core.prompts import PromptTemplate
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.runnables import RunnableParallel, RunnablePassthrough, RunnableLambda
+from langchain_core.output_parsers import StrOutputParser
+from typing import Annotated
 from dotenv import load_dotenv
 import os
 
 # Load environment variables
 load_dotenv()
 
-# Gemini model
-genai.configure(api_key=os.getenv("AIzaSyB6S8O-9l0SH_HiGkjbh47J6_a3Y4xQdj0"))
-model_gemini = genai.GenerativeModel("gemini-1.5-flash-latest")
-
 # FastAPI app setup
 app = FastAPI()
 
+# Enable CORS for all origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,23 +29,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Embedding model
-model = SentenceTransformer("all-MiniLM-L6-v2")
+# Initialize global models and variables
+gemini = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest")
+embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
-# In-memory storage for each video's chunks and index
-video_chunks = {}
+# Store transcript vectors per video
 video_indices = {}
 
-# Request schema for /extract
+# Pydantic request models
 class ExtractRequest(BaseModel):
-    video_id: str
+    video_id: Annotated[str, Field(..., description='ID of the video')]
 
-# Request schema for /ask
 class AskRequest(BaseModel):
-    video_id: str
-    question: str
+    video_id: Annotated[str, Field(..., description='ID of the video')]
+    question: Annotated[str, Field(..., description='Question to ask')]
 
-# Endpoint to extract and embed transcript
+# Endpoint to extract transcript and build vector index
 @app.post("/extract")
 async def extract_transcript(data: ExtractRequest):
     video_id = data.video_id
@@ -57,40 +58,57 @@ async def extract_transcript(data: ExtractRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-    full_text = " ".join([entry['text'] for entry in transcript])
-    chunks = [full_text[i:i+512] for i in range(0, len(full_text), 512)]
-    embeddings = model.encode(chunks)
+    full_text = " ".join(entry['text'] for entry in transcript)
+    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    chunks = splitter.split_text(full_text)
+    docs = [Document(page_content=chunk) for chunk in chunks]
 
-    # Build FAISS index
-    index = faiss.IndexFlatL2(384)
-    index.add(np.array(embeddings))
-
-    # Save index and chunks
-    video_chunks[video_id] = chunks
-    video_indices[video_id] = index
+    # Create vector index and store it
+    vector_store = FAISS.from_documents(docs, embeddings)
+    video_indices[video_id] = vector_store
 
     return {"status": "Transcript processed", "chunks": len(chunks)}
 
-# Endpoint to ask a question
+# Endpoint to ask questions
 @app.post("/ask")
 async def ask_question(data: AskRequest):
     video_id = data.video_id
     question = data.question
 
-    index = video_indices.get(video_id)
-    chunks = video_chunks.get(video_id)
-    
-    if index is None or chunks is None:
+    # Retrieve the FAISS index for this video
+    vector_store = video_indices.get(video_id)
+    if vector_store is None:
         raise HTTPException(status_code=404, detail="Video ID not found. Please extract transcript first.")
 
-    q_embed = model.encode([question])
-    D, I = index.search(np.array(q_embed), k=3)
+    retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 4})
 
-    context = " ".join([chunks[i] for i in I[0]])
-    prompt = f"""Answer the following question based on the context:\n\nContext:\n{context}\n\nQuestion: {question}"""
+    # Prompt template
+    prompt = PromptTemplate(
+        template="""
+        You are a helpful assistant.
+        Answer ONLY from the provided video transcript context.
+        If the context is insufficient, say "I don't know".
+
+        Context:
+        {context}
+
+        Question: {question}
+        """,
+        input_variables=["context", "question"]
+    )
+
+    def format_docs(retrieved_docs):
+        return "\n\n".join(doc.page_content for doc in retrieved_docs)
 
     try:
-        response = model_gemini.generate_content(prompt)
-        return {"answer": response.text.strip()}
+        # Chain setup
+        parallel_chain = RunnableParallel({
+            "context": retriever | RunnableLambda(format_docs),
+            "question": RunnablePassthrough()
+        })
+
+        chain = parallel_chain | prompt | gemini | StrOutputParser()
+        result = chain.invoke(question)
+        return {"answer": result.strip()}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Gemini API error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error while processing question: {str(e)}")
