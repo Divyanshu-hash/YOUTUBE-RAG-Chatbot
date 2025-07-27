@@ -2,14 +2,15 @@
   "manifest_version": 3,
   "name": "YouTube RAG Chatbot",
   "version": "1.0",
+  "description": "Ask questions about any YouTube video using RAG",
   "permissions": ["activeTab", "scripting"],
   "action": {
-    "default_popup": "popup.html"
-  },
-  "content_scripts": [
-    {
-      "matches": ["*://*.youtube.com/*"],
-      "js": ["popup.js"]
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
     }
-  ]
+  },
+  "host_permissions": ["<all_urls>"]
 }
