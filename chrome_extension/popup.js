@@ -5,20 +5,36 @@ async function getVideoId() {
 }
 
 document.getElementById("askBtn").addEventListener("click", async () => {
-  const videoId = await getVideoId();
   const question = document.getElementById("question").value;
+  const status = document.getElementById("status");
+  const answerBox = document.getElementById("answer");
 
-  await fetch("http://localhost:8000/extract", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ video_id: videoId })
-  });
+  answerBox.innerText = "";
+  status.innerText = "⏳ Processing...";
 
-  const response = await fetch("http://localhost:8000/ask", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ video_id: videoId, question })
-  });
-  const data = await response.json();
-  document.getElementById("answer").innerText = data.answer;
+  try {
+    const videoId = await getVideoId();
+    if (!videoId) throw new Error("Not a valid YouTube video.");
+
+    // Extract transcript first
+    await fetch("http://localhost:8000/extract", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ video_id: videoId })
+    });
+
+    // Ask the question
+    const response = await fetch("http://localhost:8000/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ video_id: videoId, question })
+    });
+
+    const data = await response.json();
+    answerBox.innerText = data.answer || "⚠️ No answer returned.";
+    status.innerText = "✅ Answer loaded";
+  } catch (err) {
+    answerBox.innerText = "";
+    status.innerText = "❌ " + (err.message || "Something went wrong.");
+  }
 });
